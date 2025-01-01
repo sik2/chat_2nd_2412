@@ -33,12 +33,14 @@ public class ChatController {
     }
 
     @GetMapping("/room/{roomId}")
-    public RsData<ChatRoom> enterChatRoom(@PathVariable Long roomId){
+    public RsData<ChatRoom> enterChatRoom(@PathVariable("roomId") Long roomId){
         return RsData.of("200", "채팅방에 입장하였습니다", chatService.enterChatRoom(roomId));
     }
 
     @PostMapping("/room/{roomId}/messagesAfter/{afterId}")
-    public RsData<List<ChatMessageResponse>> getMessagesAfter(@PathVariable Long roomId, @PathVariable Long afterId) {
+    public RsData<List<ChatMessageResponse>> getMessagesAfter(
+            @PathVariable("roomId") Long roomId,
+            @PathVariable("afterId") Long afterId) {
         return RsData.of("200", "메시지를 조회하였습니다", chatService.getMessagesAfter(roomId, afterId));
     }
 

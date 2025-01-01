@@ -58,12 +58,12 @@ public class ChatService {
     public List<ChatMessageResponse> getMessagesAfter(Long roomId, Long afterId) {
         return chatMessagesRepository.findByRoomIdAndIdGreaterThan(roomId, afterId)
                 .stream()
-                .map(message -> ChatMessageResponse.builder()
-                        .roomId(roomId)
-                        .writerName(message.getWriterName())
-                        .content(message.getContent())
-                        .sendTime(message.getCreateDate())
+                .map(chatMessage -> ChatMessageResponse.builder()
+                        .roomId(chatMessage.getRoom().getId())
+                        .writerName(chatMessage.getWriterName())
+                        .content(chatMessage.getContent())
+                        .sendTime(chatMessage.getCreateDate())
                         .build())
-                .toList();
+                .collect(Collectors.toList());
     }
 }
