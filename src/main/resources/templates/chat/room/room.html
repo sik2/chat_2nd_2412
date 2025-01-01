@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅방</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<h1 th:text="|${roomId}번 채팅방|">채팅방</h1>
+
+<nav>
+    <a th:href="@{/chat/room/make}">채팅방 생성</a>
+    <a th:href="@{/chat/room/list}">채팅방 목록</a>
+</nav>
+
+<form onsubmit="submitWriteForm(this); return false;">
+    <input type="text" name="writerName" placeholder="작성자 명" required>
+    <input type="text" name="content" placeholder="내용" required>
+    <button type="submit">전송</button>
+</form>
+
+<div>
+    <ul id="messageList" class="chat__messages">
+        <li th:if="${room != null && room.chatMessages != null}"
+            th:each="chatMessage : ${room.chatMessages}">
+            <span th:text="${chatMessage.writerName}"></span>
+            :
+            (<span th:text="${chatMessage.id}"></span>)
+            <span th:text="${chatMessage.content}"></span>
+        </li>
+    </ul>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const roomId = [[${roomId}]];
+    let lastChatMessageId = [[${room != null && room.chatMessages != null && !room.chatMessages.isEmpty()} ? ${room.chatMessages[0].id} : 0]];
+    /*]]>*/
+</script>
+
+<script>
+    let stompClient = null;
+    const messageList = document.getElementById('messageList');
+
+    // 웹소켓 연결
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.debug = null; // 디버그 로그 비활성화
+
+        stompClient.connect({}, function(frame) {
+            console.log('Connected: ' + frame);
+
+            // 채팅방의 메시지를 구독
+            stompClient.subscribe(`/topic/chat/room/${roomId}`, function(message) {
+                const chatMessage = JSON.parse(message.body);
+                drawMoreChatMessage(chatMessage);
+            });
+        }, function(error) {
+            console.log('Connection error: ' + error);
+            setTimeout(connect, 5000);
+        });
+    }
+
+    function submitWriteForm(form) {
+        const writerName = form.writerName.value.trim();
+        const content = form.content.value.trim();
+
+        if (writerName.length === 0) {
+            alert('작성자 명을 입력해주세요.');
+            form.writerName.focus();
+            return;
+        }
+
+        if (content.length === 0) {
+            alert('내용을 입력해주세요.');
+            form.content.focus();
+            return;
+        }
+
+        fetch(`/chat/room/${roomId}/write`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                writerName: writerName,
+                content: content
+            })
+        }).catch(error => console.error('Error:', error));
+
+        form.content.value = '';
+        form.content.focus();
+    }
+
+    function loadMoreChatMessages() {
+        fetch(`/chat/room/${roomId}/messagesAfter/${lastChatMessageId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(json => {
+                if (json.data && json.data.messages) {
+                    drawMoreChatMessages(json.data.messages);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function drawMoreChatMessages(messages) {
+        messages.forEach(message => drawMoreChatMessage(message));
+    }
+
+    function drawMoreChatMessage(message) {
+        lastChatMessageId = message.id;
+
+        messageList.insertAdjacentHTML(
+            "beforeEnd",  // 목록 끝에 추가
+            `<li>${message.writerName} : (${message.id}) ${message.content}</li>`
+        );
+
+        // 새 메시지가 추가되면 스크롤을 맨 아래로 이동
+        messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    // 페이지 로드시 웹소켓 연결
+    connect();
+
+    // 페이지 언로드시 연결 종료
+    window.onbeforeunload = function() {
+        if (stompClient !== null) {
+            stompClient.disconnect();
+        }
+    };
+</script>
+</body>
+</html>
