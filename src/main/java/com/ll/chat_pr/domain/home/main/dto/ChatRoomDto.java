@@ -2,8 +2,12 @@ package com.ll.chat_pr.domain.home.main.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * packageName    : com.ll.chat_pr.domain.home.main.dto
@@ -17,18 +21,22 @@ import java.time.LocalDateTime;
  * 2025-01-01        kyd54       최초 생성
  */
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
+@Setter
 public class ChatRoomDto {
-    long id;
-    String name;
-    LocalDateTime createDate;
-    LocalDateTime modifyDate;
+    private long id;
+    private String name;
+    private LocalDateTime createDate;
+    private LocalDateTime modifyDate;
+    private List<ChatMessageDto> chatMessages;  // 채팅방에 속한 메시지 리스트 추가
 
     public ChatRoomDto(String name) {
         this.id = ChatMessageIdGenerator.genNextId();
         this.name = name;
         this.createDate = LocalDateTime.now();
         this.modifyDate = LocalDateTime.now();
+        this.chatMessages = new ArrayList<>();
     }
 
     static class ChatMessageIdGenerator {

@@ -1,7 +1,6 @@
 package com.ll.chat_pr.domain.home.main.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -17,14 +16,17 @@ import java.time.LocalDateTime;
  * 2025-01-01        kyd54       최초 생성
  */
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
+@Setter
+@ToString
 public class ChatMessageDto {
-    long id;
-    long chatRoomId;
-    String writerName;
-    String content;
-    LocalDateTime createDate;
-    LocalDateTime modifyDate;
+    private long id;
+    private long chatRoomId;
+    private String writerName;
+    private String content;
+    private LocalDateTime createDate;
+    private LocalDateTime modifyDate;
 
     public ChatMessageDto(long chatRoomId, String writerName, String content) {
         this.id = ChatMessageIdGenerator.genNextId();
