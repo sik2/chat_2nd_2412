@@ -1,0 +1,148 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Room Chats</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<div class="container">
+    <div class="room-info">
+        <h1>Room Chats</h1>
+        <h2>Room ID: <span id="room-id" th:text="${roomId}"></span></h2>
+    </div>
+
+    <form id="chat-form" class="chat-form">
+        <input type="text" id="authorName" placeholder="Author Name" required/>
+        <input type="text" id="content" placeholder="Content" required/>
+        <button type="submit">Create Chat</button>
+    </form>
+
+    <ul id="chats-list"></ul>
+</div>
+
+<script>
+    function getRoomIdFromURL() {
+        const pathParts = window.location.pathname.split('/');
+        const roomId = pathParts[pathParts.length - 1];
+        return roomId;
+    }
+
+    async function fetchChats(roomId) {
+        try {
+            const response = await fetch(`/api/v0/rooms/${roomId}/chats`);
+            const data = await response.json();
+            const chatsList = document.getElementById('chats-list');
+            chatsList.innerHTML = '';
+
+            if (data.resultCode === "200") {
+                data.data.chats.forEach(chat => {
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `<strong>${chat.authorName}</strong>: ${chat.content}`;
+                    chatsList.appendChild(listItem);
+                });
+            } else {
+                chatsList.innerHTML = '<li>채팅 목록을 불러오는 데 실패했습니다.</li>';
+            }
+        } catch (error) {
+            console.error('Error fetching chats:', error);
+            chatsList.innerHTML = '<li>채팅 목록을 불러올 수 없습니다.</li>';
+        }
+        document.getElementById('room-id').innerText = roomId;
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const roomId = document.getElementById('room-id').innerText;
+        const authorName = document.getElementById('authorName').value;
+        const content = document.getElementById('content').value;
+
+        await fetch(`/api/v0/rooms/${roomId}/chats`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ authorName, content })
+        });
+
+        fetchChats(roomId);
+
+        // 입력 필드 초기화
+        document.getElementById('authorName').value = '';
+        document.getElementById('content').value = '';
+    });
+
+    // SSE 시작 (방 2번에서만 동작)
+    function startSSE(roomId) {
+        if (roomId === '2') {
+            sse = new EventSource("/sse/connect");
+
+            // // 새로운 채팅을 목록에 추가하는 함수
+            // function addChatToList(chat) {
+            //     const chatsList = document.getElementById('chats-list');
+            //     const listItem = document.createElement('li');
+            //     listItem.innerHTML = `<strong>${chat.authorName}</strong>: ${chat.content}`;
+            //     chatsList.appendChild(listItem);
+            // }
+            console.log("2번방 sse 시작");
+            sse.addEventListener('chat__messageAdded', e => {
+                fetchChats(roomId);
+            });
+
+        }
+    }
+
+    // polling 설정
+    function startPolling(roomId) {
+        if (roomId === '1') {
+            pollingInterval = setInterval(() => {
+                fetchChats(roomId);
+            }, 500);  // 0.5초마다 채팅 갱신
+        } else {
+            fetchChats(roomId);
+        }
+    }
+
+    // polling 중지 함수
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+    }
+
+    // 초기 실행
+    const roomId = getRoomIdFromURL();
+    if (roomId) {
+        if (roomId === '1') {
+            startPolling(roomId);
+        }
+        else if (roomId === '2') {
+            startSSE(roomId);
+        } else {
+            console.log("소켓통신 시작");
+            const socket = new SockJS("/ws");
+            const stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function (frame) {
+                console.log("Connected: " + frame);
+
+                stompClient.subscribe(`/topic/chat/writeMessage`, function (data) {
+                    const jsonData = JSON.parse(data.body);
+                    const chatsList = document.getElementById('chats-list');
+
+                    // 새로운 채팅 메시지 추가
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `<strong>${jsonData.authorName}</strong>: ${jsonData.content}`;
+                    chatsList.appendChild(listItem);  // 기존 목록에 추가
+                });
+
+                // fetch existing chats
+                fetchChats(roomId);
+            });
+        }
+    }
+</script>
+</body>
+</html>
