@@ -1,9 +1,16 @@
 package com.ll.chat_pr.domain.home.main.controller;
 
+import com.ll.chat_pr.domain.home.main.dto.ChatRoomDto;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * packageName    : com.ll.chat_pr.domain.home.main.controller
@@ -19,10 +26,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 @RequestMapping("/chat")
 public class ChatController {
+    // 로거
+    Logger logger = Logger.getLogger("ChatController");
+
+    // 채팅방 목록
+    private List<ChatRoomDto> chatRooms = new ArrayList<>();
 
     //  GET /chat/room/list : 채팅방 목록 조회
     @GetMapping("/room/list")
-    public String ChatRoomListPage() {
+    public String ChatRoomListPage(Model model) {
+        // 메서드 호출 확인용 로그
+        logger.info("채팅방 목록 조회");
+
+        // HTML에 전달할 데이터
+        model.addAttribute("chatRooms", chatRooms);
+
         return "domain/chat/chatRoom/list";
     }
 
@@ -34,7 +52,18 @@ public class ChatController {
 
     //  POST /chat/room/make : 채팅방 생성
     @PostMapping("/room/make")
-    public String ChatRoomMake() {
+    public String ChatRoomMake(@RequestParam String name) {
+        // 메서드 호출 확인용 로그
+        logger.info("채팅방 생성 요청");
+
+        chatRooms.add(new ChatRoomDto(name));
+
+        // 채팅방 생성 목록 확인용 로그
+        for (ChatRoomDto room : chatRooms) {
+            logger.info("채팅방 이름: " + room.getName() + ", 생성일: " + room.getCreateDate());
+        }
+
+        
         return "redirect:/chat/room/list";
     }
 
