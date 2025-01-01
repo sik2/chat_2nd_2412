@@ -9,4 +9,5 @@ public class MainController {
     public String goToChatRoomList() {
         return "redirect:/chat/room/list";
     }
+
 }
