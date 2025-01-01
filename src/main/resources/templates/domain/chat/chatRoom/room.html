@@ -83,15 +83,21 @@
             }
         )
             .then(response => response.json())
-            .then(json => drawMoreChatMessages(json.data.messages))
+            .then(json => drawMoreChatMessages(json.data))
             .then(() => setTimeout(loadMoreChatMessages, 500))
             .catch(error => alert(error));
     }
 
     function drawMoreChatMessages(messages) {
-        messages.forEach((message) => {
-            drawMoreChatMessage(message);
-        });
+        console.log("Received messages:", messages);  // 메시지 배열 확인
+
+        if (Array.isArray(messages) && messages.length > 0) {
+            messages.forEach((message) => {
+                drawMoreChatMessage(message);
+            });
+        } else {
+            console.log("새로운 메시지가 없습니다.");
+        }
     }
 
     function drawMoreChatMessage(message) {
